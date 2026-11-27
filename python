@@ -1,0 +1,328 @@
+"""
+Stock Portfolio Tracker - Beginner-friendly console application
+Allows users to enter stock names and quantities, calculates total investment
+using hardcoded stock prices, and saves portfolio as TXT or CSV.
+
+Features:
+- Hardcoded stock prices dictionary
+- Add multiple stocks with validation
+- Calculate individual and total investment
+- Display portfolio in a clean table
+- Save portfolio to TXT or CSV file
+- Simple menu-driven interface
+"""
+
+import csv
+
+# 1. Stock Price Dictionary - Hardcoded prices
+STOCK_PRICES = {
+    "AAPL": 180,
+    "TSLA": 250,
+    "GOOGL": 140,
+    "MSFT": 420,
+    "AMZN": 190
+}
+
+# Portfolio to store user's stocks (list of dictionaries)
+portfolio = []
+
+
+def display_header():
+    """Display the project title."""
+    print("\n" + "=" * 50)
+    print("      STOCK PORTFOLIO TRACKER")
+    print("=" * 50)
+
+
+def display_menu():
+    """Display the main menu options."""
+    print("\n--- MENU ---")
+    print("1. Add Stock")
+    print("2. View Portfolio")
+    print("3. Calculate Total Investment")
+    print("4. Save Portfolio")
+    print("5. Exit")
+    print("-" * 20)
+
+
+def get_valid_stock_symbol():
+    """
+    Get a valid stock symbol from user.
+    Returns the symbol if valid, None if user wants to cancel.
+    """
+    while True:
+        symbol = input("Enter Stock Symbol (AAPL, TSLA, GOOGL, MSFT, AMZN) or 'cancel': ").strip().upper()
+
+        if symbol == "CANCEL":
+            return None
+
+        if symbol in STOCK_PRICES:
+            return symbol
+        else:
+            print(f"Error: '{symbol}' is not a valid stock symbol.")
+            print(f"Available stocks: {', '.join(STOCK_PRICES.keys())}")
+            print("Please try again or type 'cancel' to go back.\n")
+
+
+def get_valid_quantity():
+    """
+    Get a valid quantity from user.
+    Returns the quantity if valid, None if user wants to cancel.
+    """
+    while True:
+        qty_input = input("Enter Quantity of Shares (positive integer) or 'cancel': ").strip()
+
+        if qty_input.lower() == "cancel":
+            return None
+
+        try:
+            quantity = int(qty_input)
+            if quantity <= 0:
+                print("Error: Quantity must be a positive number. Please try again.\n")
+                continue
+            return quantity
+        except ValueError:
+            print("Error: Please enter a valid integer. Please try again.\n")
+
+
+def add_stock():
+    """Add a new stock to the portfolio."""
+    print("\n--- Add Stock ---")
+
+    # Get stock symbol
+    symbol = get_valid_stock_symbol()
+    if symbol is None:
+        print("Add stock cancelled.")
+        return
+
+    # Get quantity
+    quantity = get_valid_quantity()
+    if quantity is None:
+        print("Add stock cancelled.")
+        return
+
+    # Calculate investment
+    price = STOCK_PRICES[symbol]
+    total_investment = price * quantity
+
+    # Check if stock already exists in portfolio
+    for stock in portfolio:
+        if stock["symbol"] == symbol:
+            print(f"\nStock {symbol} already exists in portfolio.")
+            print(f"Current quantity: {stock['quantity']}")
+            update = input("Do you want to update the quantity? (yes/no): ").strip().lower()
+            if update in ['yes', 'y']:
+                stock["quantity"] = quantity
+                stock["total_investment"] = price * quantity
+                print(f"Updated {symbol} to {quantity} shares. Total investment: ${total_investment}")
+            else:
+                print("No changes made.")
+            return
+
+    # Add new stock to portfolio
+    stock_entry = {
+        "symbol": symbol,
+        "price": price,
+        "quantity": quantity,
+        "total_investment": total_investment
+    }
+    portfolio.append(stock_entry)
+
+    print(f"\nStock added successfully!")
+    print(f"  Symbol: {symbol}")
+    print(f"  Price: ${price}")
+    print(f"  Quantity: {quantity}")
+    print(f"  Total Investment: ${total_investment}")
+
+
+def view_portfolio():
+    """Display the portfolio in a clean table format."""
+    print("\n--- View Portfolio ---")
+
+    if not portfolio:
+        print("Portfolio is empty. Add some stocks first!")
+        return
+
+    # Print table header
+    print(f"\n{'Stock Name':<12} {'Stock Price':<14} {'Quantity':<10} {'Total Investment':<18}")
+    print("-" * 55)
+
+    total_portfolio_value = 0
+    total_shares = 0
+
+    # Print each stock row
+    for stock in portfolio:
+        symbol = stock["symbol"]
+        price = stock["price"]
+        quantity = stock["quantity"]
+        total = stock["total_investment"]
+
+        print(f"{symbol:<12} ${price:<13} {quantity:<10} ${total:<17}")
+
+        total_portfolio_value += total
+        total_shares += quantity
+
+    print("-" * 55)
+    print(f"{'TOTAL':<12} {'':<14} {total_shares:<10} ${total_portfolio_value:<17}")
+    print(f"\nTotal Portfolio Value: ${total_portfolio_value}")
+    print(f"Total Number of Shares: {total_shares}")
+
+
+def calculate_total_investment():
+    """Calculate and display total investment of all stocks."""
+    print("\n--- Calculate Total Investment ---")
+
+    if not portfolio:
+        print("Portfolio is empty. Add some stocks first!")
+        return
+
+    total = sum(stock["total_investment"] for stock in portfolio)
+    total_shares = sum(stock["quantity"] for stock in portfolio)
+
+    print(f"\nIndividual Stock Investments:")
+    print("-" * 40)
+    for stock in portfolio:
+        print(f"  {stock['symbol']}: ${stock['total_investment']} ({stock['quantity']} shares @ ${stock['price']})")
+
+    print("-" * 40)
+    print(f"Total Portfolio Investment: ${total}")
+    print(f"Total Shares: {total_shares}")
+
+
+def save_portfolio():
+    """Save portfolio to TXT or CSV file."""
+    print("\n--- Save Portfolio ---")
+
+    if not portfolio:
+        print("Portfolio is empty. Nothing to save!")
+        return
+
+    print("Choose file format:")
+    print("1. TXT file")
+    print("2. CSV file")
+
+    while True:
+        choice = input("Enter choice (1 or 2): ").strip()
+
+        if choice == "1":
+            save_as_txt()
+            break
+        elif choice == "2":
+            save_as_csv()
+            break
+        else:
+            print("Invalid choice. Please enter 1 or 2.")
+
+
+def save_as_txt():
+    """Save portfolio as a TXT file."""
+    filename = input("Enter filename (without extension): ").strip()
+    if not filename:
+        filename = "portfolio"
+
+    filename += ".txt"
+
+    try:
+        with open(filename, 'w') as file:
+            file.write("STOCK PORTFOLIO TRACKER - PORTFOLIO SUMMARY\n")
+            file.write("=" * 50 + "\n\n")
+
+            file.write(f"{'Stock Name':<12} {'Stock Price':<14} {'Quantity':<10} {'Total Investment':<18}\n")
+            file.write("-" * 55 + "\n")
+
+            total_portfolio_value = 0
+            total_shares = 0
+
+            for stock in portfolio:
+                symbol = stock["symbol"]
+                price = stock["price"]
+                quantity = stock["quantity"]
+                total = stock["total_investment"]
+
+                file.write(f"{symbol:<12} ${price:<13} {quantity:<10} ${total:<17}\n")
+
+                total_portfolio_value += total
+                total_shares += quantity
+
+            file.write("-" * 55 + "\n")
+            file.write(f"{'TOTAL':<12} {'':<14} {total_shares:<10} ${total_portfolio_value:<17}\n\n")
+            file.write(f"Total Portfolio Value: ${total_portfolio_value}\n")
+            file.write(f"Total Number of Shares: {total_shares}\n")
+
+        print(f"Portfolio saved successfully to '{filename}'!")
+
+    except IOError as e:
+        print(f"Error saving file: {e}")
+
+
+def save_as_csv():
+    """Save portfolio as a CSV file."""
+    filename = input("Enter filename (without extension): ").strip()
+    if not filename:
+        filename = "portfolio"
+
+    filename += ".csv"
+
+    try:
+        with open(filename, 'w', newline='') as file:
+            writer = csv.writer(file)
+
+            # Write header
+            writer.writerow(["Stock Symbol", "Stock Price", "Quantity", "Total Investment"])
+
+            # Write data rows
+            total_portfolio_value = 0
+            total_shares = 0
+
+            for stock in portfolio:
+                writer.writerow([
+                    stock["symbol"],
+                    stock["price"],
+                    stock["quantity"],
+                    stock["total_investment"]
+                ])
+                total_portfolio_value += stock["total_investment"]
+                total_shares += stock["quantity"]
+
+            # Write summary rows
+            writer.writerow([])
+            writer.writerow(["TOTAL", "", total_shares, total_portfolio_value])
+            writer.writerow(["Total Portfolio Value", "", "", total_portfolio_value])
+            writer.writerow(["Total Number of Shares", "", "", total_shares])
+
+        print(f"Portfolio saved successfully to '{filename}'!")
+
+    except IOError as e:
+        print(f"Error saving file: {e}")
+
+
+def main():
+    """Main function to run the Stock Portfolio Tracker."""
+    display_header()
+    print("Welcome to Stock Portfolio Tracker!")
+    print("Track your stock investments with hardcoded prices.\n")
+
+    # Main menu loop
+    while True:
+        display_menu()
+        choice = input("Enter Your Choice (1-5): ").strip()
+
+        # Process user choice using conditional statements
+        if choice == '1':
+            add_stock()
+        elif choice == '2':
+            view_portfolio()
+        elif choice == '3':
+            calculate_total_investment()
+        elif choice == '4':
+            save_portfolio()
+        elif choice == '5':
+            print("\nThank you for using Stock Portfolio Tracker. Goodbye!")
+            break
+        else:
+            print("Error: Invalid choice. Please enter a number between 1 and 5.")
+
+
+# Entry point - run the program when script is executed
+if __name__ == "__main__":
+    main()
